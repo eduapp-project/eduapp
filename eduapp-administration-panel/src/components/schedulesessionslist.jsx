@@ -687,8 +687,7 @@ export default function Schedulesessionslist(props) {
               <th>{language.name}</th>
               <th>{language.streaming}</th>
               <th>{language.resources}</th>
-              <th>{language.chat}</th>
-              {/* <th>{language.subjects}</th> */}
+              <th>{language.subjects}</th>
               <th>{language.repeated}</th>
               <th>{language.startDate}</th>
               <th>{language.endDate}</th>
@@ -719,14 +718,6 @@ export default function Schedulesessionslist(props) {
                   autoComplete="off"
                 />
               </td>
-              {/* <td>
-                <Input
-                  id="s_chatGroup"
-                  type="text"
-                  placeholder={language.chat}
-                  autoComplete="off"
-                />
-              </td> */}
               <td className="subjecButton">
                 <select id="s_subjectId">
                   <option defaultValue={language.chooseSubject}>
@@ -818,8 +809,7 @@ export default function Schedulesessionslist(props) {
                   <th>{language.endDate}</th>
                   <th>{language.streaming}</th>
                   <th>{language.resources}</th>
-                  <th>{language.chat}</th>
-                  <th>{language.subjects}</th>
+                  <th>{language.subject}</th>
                   <th>{language.actions}</th>
                 </tr>
               </thead>
@@ -893,21 +883,6 @@ export default function Schedulesessionslist(props) {
                               : newResourcesPlatform
                           }
                           onChange={() => handleChangeResourcesPlatform(s.id)}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          id={`inputSessionChat_${s.id}`}
-                          type="text"
-                          disabled
-                          value={
-                            s.chat === null
-                              ? ""
-                              : changeChatId === false
-                              ? s.chat
-                              : newChatId
-                          }
-                          onChange={() => handleChangeSessionChat(s.id)}
                         />
                       </td>
                       <td>

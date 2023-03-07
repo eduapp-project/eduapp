@@ -134,6 +134,7 @@ class ChatBasesController < ApplicationController
       @chat_basis = ChatBase.new(
         chat_name: params[:chat_name],
         isGroup: params[:isGroup],
+        is_being_used: params[:is_being_used],
         isReadOnly: params[:isReadOnly].nil? ? false : params[:isReadOnly],
       )
       pri_key, pub_key = EduAppUtils::EncryptUtils::gen_key_pair(@chat_basis.id)
@@ -141,6 +142,19 @@ class ChatBasesController < ApplicationController
       @chat_basis.public_key = pub_key
 
       if @chat_basis.save
+        if params[:subject_id]
+          @subject = Subject.find(params[:subject_id])
+          @subject.update(chat_link: @chat_basis.id)
+          @subject.save
+
+          @subject.users.each do |user|
+            if user.user_info.user_role.name == "eduapp-admin" || user.user_info.user_role.name == "eduapp-teacher"
+              ChatParticipant.create(chat_base_id: @chat_basis.id, user_id: user.id, isChatAdmin: true)
+            else
+              ChatParticipant.create(chat_base_id: @chat_basis.id, user_id: user.id, isChatAdmin: false)
+            end
+          end
+        end
         render json: @chat_basis, status: :created, location: @chat_basis
       else
         render json: @chat_basis.errors, status: :unprocessable_entity
@@ -149,6 +163,7 @@ class ChatBasesController < ApplicationController
       @chat_basis = ChatBase.new(
         chat_name: params[:chat_name],
         isGroup: params[:isGroup],
+        is_being_used: params[:is_being_used],
         isReadOnly: params[:isReadOnly].nil? ? false : params[:isReadOnly],
       )
       pri_key, pub_key = EduAppUtils::EncryptUtils::gen_key_pair(@chat_basis.id)
@@ -156,6 +171,19 @@ class ChatBasesController < ApplicationController
       @chat_basis.public_key = pub_key
 
       if @chat_basis.save
+        if params[:subject_id]
+          @subject = Subject.find(params[:subject_id])
+          @subject.update(chat_link: @chat_basis.id)
+          @subject.save
+
+          @subject.users.each do |user|
+            if user.user_info.user_role.name == "eduapp-admin" || user.user_info.user_role.name == "eduapp-teacher"
+              ChatParticipant.create(chat_base_id: @chat_basis.id, user_id: user.id, isChatAdmin: true)
+            else
+              ChatParticipant.create(chat_base_id: @chat_basis.id, user_id: user.id, isChatAdmin: false)
+            end
+          end
+        end
         render json: @chat_basis, status: :created, location: @chat_basis
       else
         render json: @chat_basis.errors, status: :unprocessable_entity
@@ -215,6 +243,6 @@ class ChatBasesController < ApplicationController
 
   # Only allow a list of trusted parameters through.
   def chat_basis_params
-    params.require(:chat_basis).permit(:chat_name, :isGroup)
+    params.require(:chat_basis).permit(:chat_name, :isGroup, :is_being_used, :subject_id)
   end
 end

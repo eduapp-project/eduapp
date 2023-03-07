@@ -87,7 +87,7 @@ class SubjectsController < ApplicationController
 
     if params[:page]
       @subjects = query_paginate(@subjects, params[:page])
-      @subjects[:current_page] = serialize_each(@subjects[:current_page], [:created_at, :updated_at], [:course, :users])
+      @subjects[:current_page] = serialize_each(@subjects[:current_page], [:created_at, :updated_at], [:course, :users, :subjects_user])
     end
 
     render json: @subjects
@@ -178,13 +178,21 @@ class SubjectsController < ApplicationController
       render json: @Subject, status: :unprocessable_entity
     elsif params[:enrollment] # TODO: refactor crear una acción
       @subject = Subject.find(params[:subject_id])
-      @subject.users << User.find(params[:user_id])
-      @subject.save
+
+      if @subject.users.exists?(params[:user_id])
+        render json: @subject.errors, status: :unprocessable_entity
+      else
+        @subject.users << User.find(params[:user_id])
+        @subject.save
+      end
     else
       @subject = Subject.new(subject_code: params[:subject_code], name: params[:name],
                             description: params[:description], color: params[:color],
                             course_id: params[:course_id], chat_link: params[:chat_link])
       if @subject.save
+        if params[:chat_link]
+          ChatBase.find(params[:chat_link]).update(is_being_used: true)
+        end
         render json: @subject, status: :created, location: @subject
       else
         render json: @subject.errors, status: :unprocessable_entity
@@ -208,6 +216,9 @@ class SubjectsController < ApplicationController
   def destroy
     if !check_perms_delete!(get_user_roles.perms_subjects, false, :null)
       return
+    end
+    if @subject.chat_link
+      ChatBase.find(@subject.chat_link).update(is_being_used: false)
     end
     @subject.destroy
   end

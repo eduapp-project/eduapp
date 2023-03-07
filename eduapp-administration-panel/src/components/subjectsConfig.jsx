@@ -370,6 +370,10 @@ export default function SubjectsConfig() {
   };
 
   useEffect(() => {
+    fetchChats();
+  }, [subjects]);
+
+  useEffect(() => {
     // fetchSubjectPage(1);
     fetchCourses();
     fetchChats();
@@ -411,7 +415,7 @@ export default function SubjectsConfig() {
               <th>{language.description}</th>
               <th>{language.color}</th>
               <th>{language.linkedCourse}</th>
-              {/* <th>{language.linkedChat}</th> */}
+              <th>{language.linkedChat}</th>
             </tr>
           </thead>
 
@@ -493,7 +497,7 @@ export default function SubjectsConfig() {
                   <option value="-">{language.chooseChat}</option>
                   {chats
                     ? chats.map((ch) => {
-                        if (ch.isGroup) {
+                        if (ch.isGroup && !ch.is_being_used) {
                           return (
                             <option key={ch.id} value={ch.id}>
                               {ch.chat_name}

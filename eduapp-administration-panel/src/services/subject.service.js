@@ -59,16 +59,24 @@ export const editSubject = async (body) => {
   });
 };
 
-export const pagedSubjects = async (page, order = null, searchParams = []) => {
+export const pagedSubjects = async (page, order = null, searchParams = [], checkTeacher) => {
   const value = searchParams["query"];
   const attribute = searchParams["selectedField"];
   const extras = searchParams["extras"];
-  return await axios.get(
-    `${SUBJECTS}?page=${page}${
-      value && attribute ? "&" + attribute + "=" + value : ""
-    }&order=${btoa(JSON.stringify(order))}${extras ? "&extras=" + extras : ""}`,
-    {
-      headers: requestHeader,
-    }
-  );
+
+  const url = checkTeacher
+    ? `${SUBJECTS}?page=${page}&check_teacher=${checkTeacher}${
+        value && attribute ? "&" + attribute + "=" + value : ""
+      }&order=${btoa(JSON.stringify(order))}${
+        extras ? "&extras=" + extras : ""
+      }`
+    : `${SUBJECTS}?page=${page}${
+        value && attribute ? "&" + attribute + "=" + value : ""
+      }&order=${btoa(JSON.stringify(order))}${
+        extras ? "&extras=" + extras : ""
+      }`;
+
+  return await axios.get(url, {
+    headers: requestHeader,
+  });
 };

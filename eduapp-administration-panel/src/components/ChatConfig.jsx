@@ -185,16 +185,23 @@ export default function ChatConfig() {
   const addChat = async (e) => {
     switchEditState(false);
     e.preventDefault();
-    const context = ["chat_name", "isGroup"];
+    const context = ["chat_name", "isGroup", "is_being_used", "subject_id"];
     let json = [];
     let name = document.getElementById("ch_chat_name").value;
     let isGroup = document.getElementById("ch_isGroup").checked;
+    let is_being_used = document.getElementById("ch_idSubject").value;
 
     if (name !== "" && isGroup !== null) {
       json.push(name, isGroup);
     } else {
       finalizedCreate("error", true, language.creationFailed, false);
       return;
+    }
+
+    if (is_being_used != "-") {
+      json.push(true, is_being_used);
+    } else {
+      json.push(false);
     }
 
     let eventJson = {};
@@ -220,6 +227,7 @@ export default function ChatConfig() {
         connectionAlert();
       }
     });
+    fetchSubjects();
     return;
   };
 
@@ -249,6 +257,7 @@ export default function ChatConfig() {
         connectionAlert();
       }
     });
+    fetchSubjects();
   };
 
   const handleChange = (id) => {
@@ -258,9 +267,12 @@ export default function ChatConfig() {
 
   useEffect(() => {
     fetchChatPage(1);
-    fetchSubjects();
     setInitialFetch(true);
   }, []);
+
+  useEffect(() => {
+    fetchSubjects();
+  }, [chat]);
 
   useEffect(() => {
     setSearchParams({
@@ -290,6 +302,7 @@ export default function ChatConfig() {
               <th>{language.add}</th>
               <th>{language.name}</th>
               <th>{language.group}</th>
+              <th>{language.subjects}</th>
             </tr>
           </thead>
           <tbody>
@@ -335,6 +348,20 @@ export default function ChatConfig() {
               <td>
                 <input type="checkbox" id="ch_isGroup" />
               </td>
+              <td>
+                <select id="ch_idSubject">
+                  <option value="-">{language.chooseSubject}</option>
+                  {subjects.map((s) => {
+                    if (!s.chat_link) {
+                      return (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      );
+                    }
+                  })}
+                </select>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -355,6 +382,7 @@ export default function ChatConfig() {
                     <th>{language.code}</th>
                     <th>{language.name}</th>
                     <th>{language.group}</th>
+                    <th>{language.chatInUse}</th>
                     <th>{language.actions}</th>
                   </tr>
                 </thead>
@@ -382,11 +410,10 @@ export default function ChatConfig() {
                           />
                         </td>
                         <td style={{ textAlign: "center" }}>
-                          {e.isGroup ? (
-                            <input type="checkbox" disabled checked />
-                          ) : (
-                            <input type="checkbox" disabled />
-                          )}
+                          <input type="checkbox" disabled checked={e.isGroup} />
+                        </td>
+                        <td style={{ textAlign: "center" }}>
+                          <input type="checkbox" disabled checked={e.is_being_used} />
                         </td>
                         <td
                           style={{

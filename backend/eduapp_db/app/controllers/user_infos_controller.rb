@@ -200,6 +200,9 @@ class UserInfosController < ApplicationController
     end
     @user_info.teaching_list << Subject.find(params[:subject_id]).id
     @user_info.save
+
+    SubjectsUser.create(subject_id: params[:subject_id], user_id: params[:user_id], is_teacher: true)
+
     render json: @user_info
   end
 
@@ -242,6 +245,9 @@ class UserInfosController < ApplicationController
     @user_info = UserInfo.where(user_id: params[:user_id]).first
     @user_info.teaching_list.delete(Subject.find(params[:subject_id]).id)
     @user_info.save
+
+    SubjectsUser.destroy_by(subject_id: params[:subject_id], user_id: params[:user_id])
+
     render json: @user_info
   end
 
