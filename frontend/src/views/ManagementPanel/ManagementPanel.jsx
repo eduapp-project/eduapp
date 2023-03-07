@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
+import * as API from "../../API";
 import * as COURSE_SERVICE from "../../services/course.service";
 import * as USER_SERVICE from "../../services/user.service";
 import * as INSTITUTION_SERVICE from "../../services/institution.service";
 import * as SCHEDULE_SERVICE from "../../services/schedule.service";
 import * as ENROLL_SERVICE from "../../services/enrollment.service";
 import * as ROLE_SERVICE from "../../services/role.service";
+import * as SUBJECTSERVICE from "../../services/subject.service";
+import * as CHATSERVICE from "../../services/chat.service";
+import { interceptExpiredToken } from "../../utils/OfflineManager";
 import AppHeader from "../../components/appHeader/AppHeader";
 import useLanguage from "../../hooks/useLanguage";
 import "./ManagementPanel.css";
@@ -18,6 +22,8 @@ export default function ManagementPanel() {
   const [usersLoading, setUsersLoading] = useState(true);
   const [allowNewInstitution, setAllowInstitution] = useState(true);
   const [userRoles, setUserRoles] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [chats, setChats] = useState([]);
 
   const language = useLanguage();
 
@@ -26,25 +32,51 @@ export default function ManagementPanel() {
 
     const context = [
       "session_name",
-      "session_date",
+      "session_start_date",
+      "session_end_date",
       "streaming_platform",
       "resources_platform",
       "session_chat_id",
-      "course_id",
+      "subject_id",
+      "subject_code",
     ];
 
     let json = [];
-    var obj = e.target;
-    let name = obj.session_name.value;
-    let start = obj.start.value;
-    let end = obj.end.value;
-    let resources = obj.resources.value;
-    let platform = obj.streaming.value;
-    let date = start + "-" + end;
-    let chat = obj.chat.value;
-    let course_id = obj.course_id.value;
+    let name = document.getElementById("s_name").value;
+    let start_date = document.getElementById("s_start_date").value;
+    let end_date = document.getElementById("s_end_date").value;
+    let resources = document.getElementById("s_resources").value;
+    let streaming = document.getElementById("s_streaming").value;
+    let subject = document.getElementById("s_subjectId").value;
+    let subject_id = subject.split("_")[1];
+    let subject_code = subject.split("_")[0];
+    let chat = await SUBJECTSERVICE.fetchSubject(subject_id);
 
-    json.push(name, date, resources, platform, chat, course_id);
+    if (
+      (name !== "" &&
+        start_date !== "" &&
+        end_date !== "" &&
+        resources !== "" &&
+        streaming !== "" &&
+        subject_id !== `${language.chooseSubject}` &&
+        subject_id !== "",
+      subject_code !== `${language.chooseSubject}` && subject_code !== "")
+    ) {
+      json.push(
+        name,
+        start_date,
+        end_date,
+        streaming,
+        resources,
+        chat.data[0].chat_link,
+        subject_id,
+        subject_code
+      );
+    } else {
+      window.alert("Missing information");
+      return;
+    }
+
     let SessionJson = {};
     for (let i = 0; i <= context.length - 1; i++) {
       SessionJson[context[i]] = json[i];
@@ -52,6 +84,37 @@ export default function ManagementPanel() {
     await SCHEDULE_SERVICE.createSession(SessionJson);
     window.location.reload();
   };
+
+  const createSubject = async (e) => {
+    e.preventDefault();
+
+    let subject_code = document.getElementById("sj_subjectCode").value;
+    let name = document.getElementById("sj_name").value;
+    let desc = document.getElementById("sj_desc").value;
+    let color = document.getElementById("sj_color").value;
+    let sel_course = document.getElementById("course_chooser").value;
+    let chat_link = document.getElementById("chat_chooser").value;
+
+    let info = [subject_code, name, desc, color, sel_course, chat_link];
+
+    let valid = true;
+    for (let i of info) {
+      if (i.length < 2 && i === "-" && i === "") {
+        valid = false;
+        break;
+      }
+    }
+
+    await SUBJECTSERVICE.createSubject({
+      subject_code: subject_code,
+      name: name,
+      description: desc,
+      color: color,
+      course_id: sel_course,
+      chat_link: chat_link === "-" ? null : chat_link,
+    });
+    window.location.reload();
+  }
 
   const fetchInstitutions = () => {
     try {
@@ -104,6 +167,28 @@ export default function ManagementPanel() {
     } catch (error) {
       console.log(error);
     }
+  };
+
+  const fetchSubjects = () => {
+    API.asynchronizeRequest(function () {
+      SUBJECTSERVICE.fetchSubjects().then((cs) => setSubjects(cs.data));
+    }).then(async (e) => {
+      if (e) {
+        await interceptExpiredToken(e);
+      }
+    });
+  };
+
+  const fetchChats = () => {
+    API.asynchronizeRequest(function () {
+      CHATSERVICE.fetchChat().then((chats) => {
+        setChats(chats.data);
+      });
+    }).then(async (e) => {
+      if (e) {
+        await interceptExpiredToken(e);
+      }
+    });
   };
 
   const postInstitution = (e) => {
@@ -205,6 +290,8 @@ export default function ManagementPanel() {
     fetchRoles();
     fetchInstitutions();
     fetchCourses();
+    fetchSubjects();
+    fetchChats();
     fetchUsers();
     checkMediaQueries();
 
@@ -264,6 +351,14 @@ export default function ManagementPanel() {
           }}
         >
           <span>{language.sessions}</span>
+        </div>
+        <div
+          className="buttonManagementPanel"
+          onClick={() => {
+            openThisItem("subjects");
+          }}
+        >
+          <span>{language.subjects}</span>
         </div>
         <div
           id="institutions"
@@ -464,9 +559,9 @@ export default function ManagementPanel() {
             <div id="cp-sessions" className="sessions">
               <div className="sessions__post management__form-container">
                 <form action="submit" onSubmit={postSession}>
-                  <label htmlFor="institution_name">{language.subject}:</label>
+                  <label htmlFor="institution_name">{language.name}:</label>
                   <input
-                    id="session_name"
+                    id="s_name"
                     autoComplete="off"
                     type="text"
                     name="session_name"
@@ -474,41 +569,41 @@ export default function ManagementPanel() {
                   />
                   <label htmlFor="institution_name">{language.date}:</label>
                   <div className="timeInputs">
-                    <input id="start" name="start" type="time" required></input>
-                    <input id="end" name="end" type="time" required></input>
+                    <input
+                      id="s_start_date"
+                      name="start"
+                      type="datetime-local"
+                      required
+                    ></input>
+                    <input
+                      id="s_end_date"
+                      name="end"
+                      type="datetime-local"
+                      required
+                    ></input>
                   </div>
                   <label htmlFor="institution_name">
                     {language.mgmt_streaming_link}:
                   </label>
                   <input
-                    id="streaming"
+                    id="s_streaming"
                     autoComplete="off"
                     type="text"
                     name="streaming"
-                    required
                   />
                   <label htmlFor="session_resources">
                     {language.mgmt_resources_link}:
                   </label>
-                  <input
-                    id="resources"
-                    name="resources"
-                    type="text"
-                    required
-                  ></input>
-                  <label htmlFor="session_chat">
-                    {language.mgmt_chat_link}:
-                  </label>
-                  <input id="chat" name="chat" type="text" required></input>
-                  <label htmlFor="course_id">
+                  <input id="s_resources" name="resources" type="text"></input>
+                  <label htmlFor="s_subjectId">
                     {language.courses.substring(0, language.courses.length - 1)}
                     :
                   </label>
-                  <select name="course_id" id="course_id" required>
-                    {courses.map((i) => {
+                  <select name="s_subjectId" id="s_subjectId" required>
+                    {subjects.map((s) => {
                       return (
-                        <option key={i.id} value={i.id}>
-                          {i.name}
+                        <option key={s.id} value={`${s.subject_code}_${s.id}`}>
+                          {s.name}
                         </option>
                       );
                     })}
@@ -527,6 +622,90 @@ export default function ManagementPanel() {
                                         <button type="submit">DELETE</button>
                                     </form>
                                 </div> */}
+            </div>
+          </div>
+        </div>
+        <div
+          id="subjects"
+          className="managementpanel__sessions managementpanel__item hidden"
+        >
+          <AppHeader
+            closeHandler={() => {
+              closeThisItem("subjects");
+            }}
+            tabName={language.subjects}
+          />
+          <div
+            className="managementpanel__item__header"
+            style={{ height: "80vh", overflow: "hidden" }}
+          >
+            <div id="cp-subjects" className="sessions">
+              <div className="sessions__post management__form-container">
+                <form action="submit" onSubmit={createSubject}>
+                  <label htmlFor="sj_subjectCode">
+                    {language.subjectCode}:
+                  </label>
+                  <input
+                    id="sj_subjectCode"
+                    autoComplete="off"
+                    type="text"
+                    name="sj_subjectCode"
+                    required
+                  />
+                  <label htmlFor="sj_name">{language.name}:</label>
+                  <input id="sj_name" type="text" name="sj_name" required />
+                  <label htmlFor="sj_desc">{language.description}:</label>
+                  <input
+                    id="sj_desc"
+                    autoComplete="off"
+                    type="text"
+                    name="sj_desc"
+                  />
+                  <label htmlFor="sj_color">{language.color}:</label>
+                  <input id="sj_color" name="sj_color" type="color" />
+                  <label htmlFor="course_chooser">
+                    {language.chooseCourse}:
+                  </label>
+                  <select
+                    defaultValue={"-"}
+                    name="course_chooser"
+                    id="course_chooser"
+                    required
+                  >
+                    <option value="-">{language.chooseCourse}</option>
+                    {courses
+                      ? courses.map((c) => {
+                          return (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          );
+                        })
+                      : null}
+                  </select>
+                  <label htmlFor="chat_chooser">{language.chooseChat}:</label>
+                  <select
+                    defaultValue={"-"}
+                    name="chat_chooser"
+                    id="chat_chooser"
+                  >
+                    <option value="-">{language.chooseChat}</option>
+                    {chats
+                      ? chats.map((ch) => {
+                          console.log(ch);
+                          if (ch.isGroup && !ch.is_being_used) {
+                            return (
+                              <option key={ch.id} value={ch.id}>
+                                {ch.chat_name}
+                              </option>
+                            );
+                          }
+                        })
+                      : null}
+                  </select>
+                  <button type="submit">{language.submit}</button>
+                </form>
+              </div>
             </div>
           </div>
         </div>

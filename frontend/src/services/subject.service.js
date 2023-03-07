@@ -10,7 +10,7 @@ export const fetchSubjects = async () => {
 };
 
 export const fetchSubject = async (id) => {
-  return await axios.get(`${SUBJECTS}/${id}`, {
+  return await axios.get(`${SUBJECTS}?subject_id=${id}`, {
     headers: requestHeader,
   });
 };

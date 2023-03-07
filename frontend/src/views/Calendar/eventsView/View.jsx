@@ -27,7 +27,7 @@ export default function View(props) {
   const fetchSubject = async () => {
     if(props.data.subject_id){
       let subject = await SUBJECTSERVICE.fetchSubject(props.data.subject_id);
-      setSubject(subject.data);
+      setSubject(subject.data[0]);
     }
   };
 
@@ -250,7 +250,7 @@ export default function View(props) {
             ) : null}
             {(isAdmin || isTeacher) ? (
               <ul>
-                {subject?.users.map(user => (
+                {subject?.users?.map(user => (
                   <li key={user.id} className="subject-users">
                     {user.email}
                   </li>
@@ -303,7 +303,6 @@ export default function View(props) {
                     />
                   </svg>
                 </p>
-
                 {(subject?.chat_link && subject.chat_link !== "-") ? (
                   <p>
                     <svg
