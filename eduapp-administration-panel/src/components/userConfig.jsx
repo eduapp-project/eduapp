@@ -346,6 +346,10 @@ export default function UserConfig() {
         let chat_info;
         try {
           chat_info = await CHATSERVICE.fetchUserNotifsChat(uid);
+          if (chat_info.data.chat_participants.length == 1) {
+            await CHATSERVICE.deleteChat(chat_info.data.id);
+            throw new Error("Chat with only one participant");
+          }
         } catch (err) {
           let chat_id = await CHATSERVICE.createCompleteChat({
             base: {
@@ -373,7 +377,7 @@ export default function UserConfig() {
         console.log("Sent notification.");
       }
     }
-  }, []);
+  }, [notifyMsg]);
 
   const selectAll = useCallback(() => {
     setAllSelected(!allSelected);
